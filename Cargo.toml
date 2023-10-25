@@ -1,0 +1,24 @@
+[package]
+name = "http-auth-middleware"
+authors = ["Brian H <brian.hardock@fermyon.com>"]
+description = "An HTTP authentication middleware component."
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = [ "cdylib" ]
+
+[dependencies]
+anyhow = "1"
+http = "0.2"
+spin-sdk = { git = "https://github.com/fermyon/spin", branch = "main" }
+wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen", rev = "e57a22147846ca0c7261c54ebc804943a2fa7f7f" }
+
+[workspace]
+
+[package.metadata.component]
+package = "middleware:http-auth"
+
+[package.metadata.component.target.dependencies]
+"wasi:http" = { path = "wit/deps/http" }
+"wasi:io" = { path = "wit/deps/io" }

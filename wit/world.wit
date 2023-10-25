@@ -1,0 +1,10 @@
+package middleware:http-auth;
+
+world wasi-http-import {
+    import wasi:http/incoming-handler@0.2.0-rc-2023-10-18;
+}
+
+//world http-middleware {
+//    import wasi:http/incoming-handler@0.2.0-rc-2023-10-18;
+//    include http-trigger
+//ß}

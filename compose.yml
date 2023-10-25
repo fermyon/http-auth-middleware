@@ -1,0 +1,7 @@
+search-paths:
+  - demo/target/wasm32-wasi/release
+
+instantiations:
+  $input:
+    arguments:
+      wasi:http/incoming-handler: http-handler
