@@ -11,10 +11,8 @@ route = "/..."
 component = "http-handler"
 
 [component.http-handler]
-source = "target/wasm32-wasi/release/http_handler.wasm"
+source = "../service.wasm"
+# source = "target/wasm32-wasi/release/http_handler.wasm"
 allowed_http_hosts = []
-# middlewares = ["http-auth-middleware", "http-cors-middleware"]
 [component.http-handler.build]
 command = "cargo component build --release"
-watch = ["src/**/*.rs", "Cargo.toml"]
-

@@ -16,12 +16,6 @@ wit_bindgen::generate!({
 /// A simple Spin HTTP component.
 #[http_component]
 async fn auth(req: IncomingRequest, out: ResponseOutparam) {
-    wasi::http::incoming_handler::handle(req, out);
-
-    // println!("{:?}", req.headers);
-    // Ok(http::Response::builder()
-    //     .status(200)
-    //     .header("content-type", "text/plain")
-    //     .body("Hello, Fermyon")?)
-    todo!("")
+    // TODO: do actual auth with github
+    wasi::http::incoming_handler::handle(req, out.into_inner());
 }
