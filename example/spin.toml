@@ -1,0 +1,16 @@
+spin_manifest_version = 2
+
+[application]
+name = "example"
+version = "0.1.0"
+description = "A simple HTTP handler"
+
+[[trigger.http]]
+route = "/..."
+component = "example"
+
+[component.example]
+source = "service.wasm"
+allowed_http_hosts = []
+[component.example.build]
+command = "./build.sh"

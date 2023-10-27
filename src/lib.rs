@@ -8,14 +8,13 @@ wit_bindgen::generate!({
     with: {
         "wasi:http/types@0.2.0-rc-2023-10-18": spin_sdk::wit::wasi::http::types,
         "wasi:io/streams@0.2.0-rc-2023-10-18": spin_sdk::wit::wasi::io::streams,
-        "wasi:io/poll@0.2.0-rc-2023-10-18": spin_sdk::wit::wasi::io,
+        "wasi:io/poll@0.2.0-rc-2023-10-18": spin_sdk::wit::wasi::io::poll,
     }
 });
 
-
-/// A simple Spin HTTP component.
 #[http_component]
 async fn auth(req: IncomingRequest, out: ResponseOutparam) {
     // TODO: do actual auth with github
+    println!("AUTH");
     wasi::http::incoming_handler::handle(req, out.into_inner());
 }

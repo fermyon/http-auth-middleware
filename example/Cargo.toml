@@ -1,0 +1,19 @@
+[package]
+name = "example"
+description = "A simple HTTP handler"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = [ "cdylib" ]
+
+[dependencies]
+anyhow = "1"
+http = "0.2"
+spin-sdk = { git = "https://github.com/fermyon/spin", branch = "main" }
+wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen", rev = "3518b5e2f08e4028b7f0cf0ed386e03423a3cd1b" }
+
+[workspace]
+
+[package.metadata.component]
+package = "demo:example"
