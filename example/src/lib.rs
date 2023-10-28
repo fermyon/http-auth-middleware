@@ -4,7 +4,6 @@ use spin_sdk::http_component;
 /// A simple Spin HTTP component.
 #[http_component]
 fn handle_http_handler(_req: Request) -> anyhow::Result<impl IntoResponse> {
-    println!("HELLO");
     Ok(http::Response::builder()
         .status(200)
         .header("content-type", "text/plain")

@@ -6,6 +6,6 @@ cargo component build --release
 # Build and run the example
 spin up --build -f example
 # ... In a new terminal ...
-curl localhost:3000/
+curl -b "token=YOUR TOKEN" localhost:3000
 Hello, Fermyon!
 ```
