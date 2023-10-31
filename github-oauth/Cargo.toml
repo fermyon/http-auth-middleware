@@ -1,11 +1,11 @@
 [package]
-name = "http-auth-middleware"
+name = "github-oauth"
 description = "An HTTP authentication middleware component."
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = [ "cdylib" ]
+crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1"
