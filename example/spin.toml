@@ -10,7 +10,8 @@ route = "/..."
 component = "example"
 
 [component.example]
+environment = { CLIENT_ID = "<YOUR GITHUB CLIENT ID>", CLIENT_SECRET = "<YOUR GITHUB CLIENT SECRET>" }
 source = "service.wasm"
-allowed_http_hosts = ["api.github.com"]
+allowed_http_hosts = ["github.com", "api.github.com"]
 [component.example.build]
 command = "./build.sh"

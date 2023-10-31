@@ -3,9 +3,9 @@
 ```
 # Build the middleware
 cargo component build --release
+
 # Build and run the example
 spin up --build -f example
-# ... In a new terminal ...
-curl -b "token=YOUR TOKEN" localhost:3000
-Hello, Fermyon!
+
+# Open http://127.0.0.1:3000/login in a browser
 ```
