@@ -2,7 +2,7 @@
 
 ```
 # Build the middleware
-cargo component build --release
+cargo component build --manifest-path github-oauth/Cargo.toml --release
 
 # Build and run the example
 spin up --build -f example

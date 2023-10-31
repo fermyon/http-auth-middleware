@@ -291,6 +291,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "github-oauth"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cookie",
+ "futures",
+ "http",
+ "json",
+ "oauth2",
+ "serde",
+ "serde_json",
+ "spin-sdk",
+ "url",
+ "wit-bindgen 0.13.0",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -314,23 +331,6 @@ dependencies = [
  "bytes",
  "fnv",
  "itoa",
-]
-
-[[package]]
-name = "http-auth-middleware"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cookie",
- "futures",
- "http",
- "json",
- "oauth2",
- "serde",
- "serde_json",
- "spin-sdk",
- "url",
- "wit-bindgen 0.13.0",
 ]
 
 [[package]]
