@@ -1,6 +1,5 @@
 # http-auth-middleware
 
-
 This repo is an example of how to compose a middleware component with a business logic component.
 
 ## Repo structure
@@ -21,13 +20,13 @@ The `example/` directory contains a Spin application which consists of one http 
 
 - Install [cargo component](https://github.com/bytecodealliance/cargo-component):
 
-```
+```bash
 cargo install --git https://github.com/bytecodealliance/cargo-component cargo-component
 ```
 
 - Install a fork of [wasm-tools](https://github.com/dicej/wasm-tools/tree/wasm-compose-resource-imports): 
 
-```
+```bash
 cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-resource-imports wasm-tools --locked
 ```
 
@@ -37,17 +36,16 @@ cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-re
     - Save the Client ID
     - Generate a new Client Secret and save that as well
 
-- In `example/spin.toml`: replace `<YOUR GITHUB CLIENT ID>` with the Client ID from your GitHub APP and `<YOUR GITHUB CLIENT SECRET>` with the Client Secret from your GitHub App
 
 ### Build the components and run the demo
 
-```
+```bash
 
 # Build the middleware
 cargo component build --manifest-path github-oauth/Cargo.toml --release
 
 # Build and run the example
-spin up --build -f example
+spin up --build -f example -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
 
 # Open http://127.0.0.1:3000/login in a browser
 ```
