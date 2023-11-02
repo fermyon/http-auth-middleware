@@ -19,6 +19,9 @@ The `example/` directory contains a Spin application which consists of one http 
 
 ### Pre-requisites
 
+- Install cargo tools
+    - Install cargo component to build wasi components `cargo install cargo-component`
+    - Install wasm tools to compose the middleware component `cargo install wasm-tools`
 - Create a [GitHub App](https://github.com/settings/apps/new). The callback URL should be `http://localhost:3000/login/callback. Accept defaults and input dummy values for the rest of the fields.
     - Save the Client ID
     - Generate a new Client Secret and save that as well
