@@ -7,5 +7,5 @@ fn handle_http_handler(_req: Request) -> anyhow::Result<impl IntoResponse> {
     Ok(http::Response::builder()
         .status(200)
         .header("content-type", "text/plain")
-        .body("Hello, Fermyon!")?)
+        .body("Business logic executed!")?)
 }

@@ -5,13 +5,12 @@ use url::Url;
 mod api;
 
 // TODO: Allow configurable redirect URL
-
 #[http_component]
 async fn middleware(request: IncomingRequest, output: ResponseOutparam) {
-    let url = match Url::parse(&request.uri()) {
+    let url = match get_url(&request) {
         Ok(url) => url,
-        Err(error) => {
-            eprintln!("error parsing URL: {error}");
+        Err(e) => {
+            eprintln!("error parsing URL: {e}");
             let response = OutgoingResponse::new(500, &Headers::new(&[]));
             output.set(response);
             return;
@@ -19,11 +18,25 @@ async fn middleware(request: IncomingRequest, output: ResponseOutparam) {
     };
 
     match url.path() {
-        "/login/authorize" => api::authorize(request, output).await,
-        "/login/callback" => api::callback(url, request, output).await,
-        "/login" => api::login(request, output).await,
+        "/login/authorize" => api::authorize(output).await,
+        "/login/callback" => api::callback(url, output).await,
+        "/login" => api::login(output).await,
         _ => api::authenticate(request, output).await,
     }
+}
+
+fn get_url(request: &IncomingRequest) -> anyhow::Result<Url> {
+    let mut host_header = request
+        .headers()
+        .get(http::header::HOST.as_str())
+        .into_iter();
+    let header = &host_header
+        .next()
+        .ok_or(anyhow::anyhow!("missing host header"))?;
+    let host = String::from_utf8_lossy(header);
+    let path = request.path_with_query().unwrap_or_default();
+    let full = format!("http://{}{}", host, path);
+    Ok(Url::parse(&full)?)
 }
 
 wit_bindgen::generate!({

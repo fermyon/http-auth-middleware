@@ -1,10 +1,10 @@
 use super::OAuth2;
 use oauth2::{CsrfToken, RedirectUrl, Scope};
-use spin_sdk::http::{Headers, IncomingRequest, OutgoingResponse, ResponseOutparam};
+use spin_sdk::http::{Headers, OutgoingResponse, ResponseOutparam};
 
 /// `authorize` kicks off the oauth flow constructing the authorization url and redirecting the client to github
 /// to authorize the application to the user's profile.
-pub async fn authorize(_request: IncomingRequest, output: ResponseOutparam) {
+pub async fn authorize(output: ResponseOutparam) {
     let client = match OAuth2::try_init() {
         Ok(config) => {
             let redirect_url = RedirectUrl::new("http://127.0.0.1:3000/login/callback".to_string())

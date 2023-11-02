@@ -1,12 +1,10 @@
 use super::OAuth2;
 use cookie::{Cookie, SameSite};
 use oauth2::{AuthorizationCode, CsrfToken, RedirectUrl, TokenResponse};
-use spin_sdk::http::{
-    send, Headers, IncomingRequest, OutgoingResponse, ResponseOutparam, SendError,
-};
+use spin_sdk::http::{send, Headers, OutgoingResponse, ResponseOutparam, SendError};
 use url::Url;
 
-pub async fn callback(url: Url, _request: IncomingRequest, output: ResponseOutparam) {
+pub async fn callback(url: Url, output: ResponseOutparam) {
     let client = match OAuth2::try_init() {
         Ok(config) => {
             let redirect_url = RedirectUrl::new("http://127.0.0.1:3000/login/callback".to_string())
@@ -85,13 +83,13 @@ fn get_code_and_state_param(url: &Url) -> anyhow::Result<(AuthorizationCode, Csr
     const STATE_QUERY_PARAM_NAME: &str = "state";
     const CODE_QUERY_PARAM_NAME: &str = "code";
 
-    let Some(param) = get_query_param(&url, STATE_QUERY_PARAM_NAME) else {
+    let Some(param) = get_query_param(url, STATE_QUERY_PARAM_NAME) else {
         anyhow::bail!("missing '{STATE_QUERY_PARAM_NAME}' query parameter");
     };
 
     let state = CsrfToken::new(param);
 
-    let Some(param) = get_query_param(&url, CODE_QUERY_PARAM_NAME) else {
+    let Some(param) = get_query_param(url, CODE_QUERY_PARAM_NAME) else {
         anyhow::bail!("missing '{CODE_QUERY_PARAM_NAME}' query parameter");
     };
 
