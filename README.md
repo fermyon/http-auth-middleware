@@ -19,6 +19,20 @@ The `example/` directory contains a Spin application which consists of one http 
 
 ### Pre-requisites
 
+- Install [cargo component](https://github.com/bytecodealliance/cargo-component):
+
+```
+cargo install --git https://github.com/bytecodealliance/cargo-component cargo-component
+```
+
+- Install a fork of [wasm-tools](https://github.com/dicej/wasm-tools/tree/wasm-compose-resource-imports): 
+
+```
+cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-resource-imports wasm-tools --locked
+```
+
+- Install latest [Spin](https://github.com/fermyon/spin)
+
 - Create a [GitHub App](https://github.com/settings/apps/new). The callback URL should be `http://127.0.0.1:3000/login/callback`. Accept defaults and input dummy values for the rest of the fields.
     - Save the Client ID
     - Generate a new Client Secret and save that as well
