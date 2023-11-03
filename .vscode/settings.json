@@ -1,0 +1,15 @@
+{
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    },
+    "rust-analyzer.linkedProjects": [
+        "github-oauth/Cargo.toml",
+        "example/Cargo.toml"
+    ],
+    "rust-analyzer.checkOnSave": true,
+    "rust-analyzer.check.overrideCommand": ["cargo", "component", "check", "--message-format=json"],
+    // VS Code don't watch files under ./target
+    "files.watcherExclude": {
+        "**/target/**": true
+    }
+}

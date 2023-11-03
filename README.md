@@ -44,6 +44,9 @@ cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-re
 # Build the middleware
 cargo component build --manifest-path github-oauth/Cargo.toml --release
 
+# Build example
+(cd example && spin build)
+
 # Build and run the example
 spin up --build -f example -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
 
