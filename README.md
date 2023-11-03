@@ -49,3 +49,29 @@ spin up --build -f example -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SE
 
 # Open http://127.0.0.1:3000/login in a browser
 ```
+
+### Running with Wasmtime
+
+This component can be universally run by runtimes that support WASI preview 2's [HTTP proxy
+world](https://github.com/WebAssembly/wasi-http/blob/main/wit/proxy.wit). For example, it can be
+served directly by Wasmtime, the runtime embedded in Spin. First, ensure you have installed the
+[Wasmtime CLI](https://github.com/bytecodealliance/wasmtime/releases) with at least version
+`v14.0.3`. We will use the `wasmtime serve` subcommand which serves requests to/from a WASI HTTP
+component.
+
+Unfortunately, `wasmtime serve` does not currently support setting environment variables in
+component, so we cannot pass environment variables at runtime as we did with Spin. Instead, set the
+`CLIENT_ID` and `CLIENT_SECRET` oauth app secrets generated in the [prerequisites](#pre-requisites)
+step as environment variables and build the oauth component with the `compile-time-secrets` feature
+flag. The flag ensures the environment variables are set in the component at compile time so they
+are no longer needed from the WebAssembly runtime.
+
+```bash
+export CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> 
+export CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
+cargo component build --manifest-path github-oauth/Cargo.toml --release --features compile-time-secrets
+# Compose the auth component with the business logic component using wasm-tools
+cd example && ./build.sh
+# Serve the component on the expected host and port
+wasmtime serve service.wasm --addr 127.0.0.1:3000
+```
