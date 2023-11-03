@@ -28,3 +28,7 @@ package = "middleware:http-auth"
 [package.metadata.component.target.dependencies]
 "wasi:http" = { path = "wit/deps/http" }
 "wasi:io" = { path = "wit/deps/io" }
+
+[features]
+# Inject oauth credentials environment variables at compile time rather than runtime
+compile-time-secrets = []
