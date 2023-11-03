@@ -19,14 +19,21 @@ pub struct OAuth2 {
 
 impl OAuth2 {
     pub fn try_init() -> anyhow::Result<Self> {
-        let (client_secret, client_id) = if cfg!(feature = "compile-time-secrets") {
-            (
-                env!("CLIENT_SECRET").to_string(),
-                env!("CLIENT_ID").to_string(),
-            )
-        } else {
+        let client_id_env = "";
+        let client_secret_env = "";
+
+        #[cfg(feature = "compile-time-secrets")]
+        let (client_secret_env, client_id_env) = (
+            env!("CLIENT_SECRET").to_string(),
+            env!("CLIENT_ID").to_string(),
+        );
+
+        let (client_secret, client_id) = if !cfg!(feature = "compile-time-secrets") {
             (std::env::var("CLIENT_SECRET")?, std::env::var("CLIENT_ID")?)
+        } else {
+            (client_secret_env.to_string(), client_id_env.to_string())
         };
+
         let client_secret = ClientSecret::new(client_secret);
         let client_id = ClientId::new(client_id);
         let auth_url = AuthUrl::new("https://github.com/login/oauth/authorize".to_string())?;
