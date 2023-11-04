@@ -11,6 +11,6 @@ component = "example"
 
 [component.example]
 source = "service.wasm"
-allowed_http_hosts = ["github.com", "api.github.com"]
+allowed_outbound_hosts = ["https://github.com", "https://api.github.com"]
 [component.example.build]
 command = "./build.sh"
