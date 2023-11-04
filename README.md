@@ -32,7 +32,7 @@ cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-re
 
 - Install latest [Spin](https://github.com/fermyon/spin)
 
-- Create a [GitHub App](https://github.com/settings/apps/new). Set the callback URL to `http://127.0.0.1:3000/login/callback`. Accept defaults and input dummy values for the rest of the fields.
+- Create an OAuth App in your [GitHub Developer Settings](https://github.com/settings/developers). Set the callback URL to `http://127.0.0.1:3000/login/callback`. Accept defaults and input dummy values for the rest of the fields.
     - Save the Client ID
     - Generate a new Client Secret and save that as well
 
