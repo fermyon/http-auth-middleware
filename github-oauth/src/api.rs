@@ -1,3 +1,4 @@
+use anyhow::Context;
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, TokenUrl};
 
 pub use authenticate::authenticate;
@@ -19,19 +20,20 @@ pub struct OAuth2 {
 
 impl OAuth2 {
     pub fn try_init() -> anyhow::Result<Self> {
-        let client_id_env = "";
-        let client_secret_env = "";
-
-        #[cfg(feature = "compile-time-secrets")]
-        let (client_secret_env, client_id_env) = (
-            env!("CLIENT_SECRET").to_string(),
-            env!("CLIENT_ID").to_string(),
-        );
+        let client_secret_env = option_env!("CLIENT_SECRET");
+        let client_id_env = option_env!("CLIENT_ID");
 
         let (client_secret, client_id) = if !cfg!(feature = "compile-time-secrets") {
             (std::env::var("CLIENT_SECRET")?, std::env::var("CLIENT_ID")?)
         } else {
-            (client_secret_env.to_string(), client_id_env.to_string())
+            (
+                client_secret_env
+                    .context("CLIENT_SECRET was not configured at build time")?
+                    .to_string(),
+                client_id_env
+                    .context("CLIENT_ID was not configured at build time")?
+                    .to_string(),
+            )
         };
 
         let client_secret = ClientSecret::new(client_secret);
