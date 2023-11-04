@@ -32,10 +32,9 @@ cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-re
 
 - Install latest [Spin](https://github.com/fermyon/spin)
 
-- Create a [GitHub App](https://github.com/settings/apps/new). The callback URL should be `http://127.0.0.1:3000/login/callback`. Accept defaults and input dummy values for the rest of the fields.
+- Create a [GitHub App](https://github.com/settings/apps/new). Set the callback URL to `http://127.0.0.1:3000/login/callback`. Accept defaults and input dummy values for the rest of the fields.
     - Save the Client ID
     - Generate a new Client Secret and save that as well
-
 
 ### Build the components and run the demo
 
@@ -43,9 +42,6 @@ cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-re
 
 # Build the middleware
 cargo component build --manifest-path github-oauth/Cargo.toml --release
-
-# Build example
-(cd example && spin build)
 
 # Build and run the example
 spin up --build -f example -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
@@ -77,4 +73,16 @@ cargo component build --manifest-path github-oauth/Cargo.toml --release --featur
 cd example && ./build.sh
 # Serve the component on the expected host and port
 wasmtime serve service.wasm --addr 127.0.0.1:3000
+```
+
+### Configuring the callback URL
+
+Instead of using the default callback URL of `http://127.0.0.1:3000/login/callback`, you can configure the URL in an environment variable that is resolved at build time. This is useful in the case that the component is not running locally, rather in a hosted environment such as Fermyon Cloud.
+
+```sh
+export AUTH_CALLBACK_URL=http://my-auth-app.fermyon.app/login/callback
+export CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> 
+export CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
+cargo component build --manifest-path github-oauth/Cargo.toml --release --features compile-time-secrets
+spin deploy -f example 
 ```

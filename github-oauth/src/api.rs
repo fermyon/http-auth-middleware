@@ -17,6 +17,8 @@ pub struct OAuth2 {
     token_url: TokenUrl,
 }
 
+pub const AUTH_CALLBACK_URL: Option<&'static str> = option_env!("AUTH_CALLBACK_URL");
+
 impl OAuth2 {
     pub fn try_init() -> anyhow::Result<Self> {
         let client_id_env = "";

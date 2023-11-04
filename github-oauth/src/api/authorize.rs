@@ -5,9 +5,10 @@ use spin_sdk::http::{Headers, OutgoingResponse, ResponseOutparam};
 /// `authorize` kicks off the oauth flow constructing the authorization url and redirecting the client to github
 /// to authorize the application to the user's profile.
 pub async fn authorize(output: ResponseOutparam) {
+    let callback_url = crate::api::AUTH_CALLBACK_URL.unwrap_or("http://127.0.0.1:3000/login/callback").to_string();
     let client = match OAuth2::try_init() {
         Ok(config) => {
-            let redirect_url = RedirectUrl::new("http://127.0.0.1:3000/login/callback".to_string())
+            let redirect_url = RedirectUrl::new(callback_url)
                 .expect("Invalid redirect URL");
             config
                 .into_client()

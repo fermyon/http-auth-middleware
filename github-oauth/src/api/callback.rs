@@ -5,9 +5,10 @@ use spin_sdk::http::{send, Headers, OutgoingResponse, ResponseOutparam, SendErro
 use url::Url;
 
 pub async fn callback(url: Url, output: ResponseOutparam) {
+    let callback_url = crate::api::AUTH_CALLBACK_URL.unwrap_or("http://127.0.0.1:3000/login/callback").to_string();
     let client = match OAuth2::try_init() {
         Ok(config) => {
-            let redirect_url = RedirectUrl::new("http://127.0.0.1:3000/login/callback".to_string())
+            let redirect_url = RedirectUrl::new(callback_url.clone())
                 .expect("Invalid redirect URL");
             config
                 .into_client()
@@ -39,6 +40,8 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
         .request_async(oauth_http_client)
         .await;
 
+    let mut location = url::Url::parse(&callback_url).unwrap();
+    location.set_path("");
     match result {
         Ok(result) => {
             let access_token = serde_json::to_string(result.access_token())
@@ -54,7 +57,7 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
                 ("Content-Type".to_string(), "text/plain".as_bytes().to_vec()),
                 (
                     "Location".to_string(),
-                    "http://127.0.0.1:3000/".as_bytes().to_vec(),
+                    location.to_string().as_bytes().to_vec(),
                 ),
                 (
                     "Set-Cookie".to_string(),
