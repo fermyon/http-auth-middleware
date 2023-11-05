@@ -2,3 +2,5 @@ example/service.wasm
 example/target/
 target/
 .spin/
+build/
+*.wasm
