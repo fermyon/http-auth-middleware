@@ -1,0 +1,59 @@
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  annotations:
+    description: 
+    version: v1.0.0-edge
+  name: example
+spec:
+  components:
+    - name: example
+      properties:
+        image: registry.cosmonic.sh/6a96d068-cc34-4041-b28d-7b2c3dc7c839/example:0.1.0
+      traits:
+        - properties:
+            replicas: 1
+            spread:
+              - name: stargate
+                requirements:
+                  # hostcore.os: macos
+                  stargate: "true"
+          type: spreadscaler
+        - properties:
+            target: httpserver
+          type: linkdef
+        - properties:
+            target: httpclient
+          type: linkdef
+      type: actor
+    - name: httpserver
+      properties:
+        contract: wasmcloud:httpserver
+        #
+        # This webserver integrates with AWS on Cosmonic; you could use a local HTTP Web Server
+        #   deployed on the remote host instead of, or in addition to, this one
+        #
+        image: cosmonic.azurecr.io/httpserver_wormhole:0.6.2
+      traits:
+        - properties:
+            replicas: 1
+            spread:
+              - name: oncosmonic
+                requirements:
+                  cosmonic_managed: "true"
+          type: spreadscaler
+      type: capability
+    - name: httpclient
+      properties:
+        contract: wasmcloud:httpclient
+        image: wasmcloud.azurecr.io/httpclient:0.8.0
+      traits:
+        - properties:
+            replicas: 1
+            spread:
+              - name: stargate
+                requirements:
+                  # hostcore.os: macos
+                  stargate: "true"
+          type: spreadscaler
+      type: capability
