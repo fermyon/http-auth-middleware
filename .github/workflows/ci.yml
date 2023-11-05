@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install cargo-component
+      run: cargo install --git https://github.com/bytecodealliance/cargo-component cargo-component
+    - name: Install wasm-tools
+      run: cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-resource-imports wasm-tools --locked
+
+    - name: Build middleware
+      run: cargo component build --release --manifest-path github-oauth/Cargo.toml
+
+    - name: Build example app
+      run: cargo component build --release --manifest-path example/Cargo.toml
+    
+    - name: compose components
+      run: wasm-tools compose github-oauth/target/wasm32-wasi/release/github_oauth.wasm -d example/target/wasm32-wasi/release/example.wasm -o service.wasm
