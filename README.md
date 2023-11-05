@@ -80,7 +80,7 @@ wasmtime serve service.wasm --addr 127.0.0.1:3000
 Instead of using the default callback URL of `http://127.0.0.1:3000/login/callback`, you can configure the URL in an environment variable that is resolved at build time. This is useful in the case that the component is not running locally, rather in a hosted environment such as Fermyon Cloud.
 
 ```sh
-export AUTH_CALLBACK_URL=http://my-auth-app.fermyon.app/login/callback
+export AUTH_CALLBACK_URL=https://http-auth-app.fermyon.app/login/callback
 export CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> 
 export CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
 cargo component build --manifest-path github-oauth/Cargo.toml --release --features compile-time-secrets

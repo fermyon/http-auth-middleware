@@ -31,18 +31,34 @@ jobs:
         CLIENT_ID: ${{ secrets.CLIENT_ID_LOCALHOST }}
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET_LOCALHOST }}
       run: cargo component build --release --manifest-path github-oauth/Cargo.toml --features compile-time-secrets
+    
     - name: Build middleware
       if: matrix.cloud == 'COSMONIC'
       env:
         CLIENT_ID: ${{ secrets.CLIENT_ID_COSMONIC }}
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET_COSMONIC }}
+        AUTH_CALLBACK_URL: https://auth.cosmonic.app/login/callback
       run: cargo component build --release --manifest-path github-oauth/Cargo.toml --features compile-time-secrets
+    
+    - name: Build middleware
+      if: matrix.cloud == 'FERMYON'
+      env:
+        CLIENT_ID: ${{ secrets.CLIENT_ID_FERMYON }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET_FERMYON }}
+        AUTH_CALLBACK_URL: https://example-auth.fermyon.app/login/callback
+      run: cargo component build --release --manifest-path github-oauth/Cargo.toml --features compile-time-secrets      
 
     - name: Build example app
       run: cargo component build --release --manifest-path example/Cargo.toml
     
     - name: compose components
       run: wasm-tools compose github-oauth/target/wasm32-wasi/release/github_oauth.wasm -d example/target/wasm32-wasi/release/example.wasm -o ${{matrix.cloud}}.service.wasm
+
+    - name: Store middleware wasm
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.cloud}}.middleware.wasm
+        path: github-oauth/target/wasm32-wasi/release/github_oauth.wasm
 
     - name: Store composed wasm
       uses: actions/upload-artifact@v3
