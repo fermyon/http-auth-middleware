@@ -3,7 +3,7 @@ kind: Application
 metadata:
   annotations:
     description: 
-    version: v1.0.0-edge
+    version: v0.1.0
   name: example
 spec:
   components:
