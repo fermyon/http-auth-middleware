@@ -8,3 +8,6 @@ claims = [
     "wasmcloud:httpserver",
     "wasmcloud:httpclient"
 ]
+
+wasm_target = "wasm32-wasi-preview2"
+wit_world = "demo:example/example"

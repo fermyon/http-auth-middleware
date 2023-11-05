@@ -15,8 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        cloud: [ "LOCALHOST", "COSMONIC"]
-        # cloud: [ "LOCALHOST", "COSMONIC", "FERMYON"]
+        cloud: [ "LOCALHOST", "COSMONIC", "FERMYON"]
 
     steps:
     - uses: actions/checkout@v3
