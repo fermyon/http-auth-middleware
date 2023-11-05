@@ -11,8 +11,12 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        cloud: [ "LOCALHOST", "COSMONIC"]
+        # cloud: [ "LOCALHOST", "COSMONIC", "FERMYON"]
 
     steps:
     - uses: actions/checkout@v3
@@ -22,10 +26,26 @@ jobs:
       run: cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-resource-imports wasm-tools --locked
 
     - name: Build middleware
-      run: cargo component build --release --manifest-path github-oauth/Cargo.toml
+      if: matrix.cloud == 'LOCALHOST'
+      env:
+        CLIENT_ID: ${{ secrets.CLIENT_ID_LOCALHOST }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET_LOCALHOST }}
+      run: cargo component build --release --manifest-path github-oauth/Cargo.toml --features compile-time-secrets
+    - name: Build middleware
+      if: matrix.cloud == 'COSMONIC'
+      env:
+        CLIENT_ID: ${{ secrets.CLIENT_ID_COSMONIC }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET_COSMONIC }}
+      run: cargo component build --release --manifest-path github-oauth/Cargo.toml --features compile-time-secrets
 
     - name: Build example app
       run: cargo component build --release --manifest-path example/Cargo.toml
     
     - name: compose components
-      run: wasm-tools compose github-oauth/target/wasm32-wasi/release/github_oauth.wasm -d example/target/wasm32-wasi/release/example.wasm -o service.wasm
+      run: wasm-tools compose github-oauth/target/wasm32-wasi/release/github_oauth.wasm -d example/target/wasm32-wasi/release/example.wasm -o ${{matrix.cloud}}.service.wasm
+
+    - name: Store composed wasm
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.cloud}}.service.wasm
+        path: ${{matrix.cloud}}.service.wasm
