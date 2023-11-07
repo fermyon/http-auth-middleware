@@ -5,11 +5,16 @@ use spin_sdk::http::{send, Headers, OutgoingResponse, ResponseOutparam, SendErro
 use url::Url;
 
 pub async fn callback(url: Url, output: ResponseOutparam) {
-    let callback_url = crate::api::AUTH_CALLBACK_URL.unwrap_or("http://127.0.0.1:3000/login/callback").to_string();
+    let callback_url = match std::env::var("AUTH_CALLBACK_URL") {
+        Ok(runtime_env) => runtime_env,
+        Err(_) => crate::api::AUTH_CALLBACK_URL
+            .unwrap_or("http://127.0.0.1:3000/login/callback")
+            .to_string(),
+    };
     let client = match OAuth2::try_init() {
         Ok(config) => {
-            let redirect_url = RedirectUrl::new(callback_url.clone())
-                .expect("Invalid redirect URL");
+            let redirect_url =
+                RedirectUrl::new(callback_url.clone()).expect("Invalid redirect URL");
             config
                 .into_client()
                 .set_auth_type(oauth2::AuthType::RequestBody)

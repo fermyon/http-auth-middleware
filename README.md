@@ -63,7 +63,7 @@ component, so we cannot pass environment variables at runtime as we did with Spi
 `CLIENT_ID` and `CLIENT_SECRET` oauth app secrets generated in the [prerequisites](#pre-requisites)
 step as environment variables and build the oauth component with the `compile-time-secrets` feature
 flag. The flag ensures the environment variables are set in the component at compile time so they
-are no longer needed from the WebAssembly runtime.
+are no longer needed from the WebAssembly runtime. It is not recommended to embed secrets in production applications; rather, environment variables should be passed at runtime if the WebAssembly Host supports it. This is [configurable with Spin and Fermyon Cloud](#using-runtime-environment-variables).
 
 ```bash
 export CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> 
@@ -86,3 +86,48 @@ export CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
 cargo component build --manifest-path github-oauth/Cargo.toml --release --features compile-time-secrets
 spin deploy -f example 
 ```
+
+### Using Runtime Environment Variables
+
+Not all WebAssembly runtimes fully support exporting the [`wasi:cli/environment`](https://github.com/WebAssembly/wasi-cli/blob/main/wit/environment.wit) interface to components. Spin, however, does support this and can load environment variables into a component's environment. Simply pass the environment variables during a `spin up`:
+```sh
+cargo component build --manifest-path github-oauth/Cargo.toml --release
+spin up --build -f example -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
+```
+
+To deploy an app to Fermyon Cloud that uses environment variables, you need to [configure them in your `spin.toml`](https://developer.fermyon.com/spin/v2/writing-apps#adding-environment-variables-to-components). Update [the example application manifest](./example/spin.toml) to contain your `CLIENT_ID` and `CLIENT_SECRET` environment variables. Since we do not know the endpoint for our Fermyon Cloud application until after the first deploy, we cannot yet configure the `AUTH_CALLBACK_URL`.
+
+```sh
+[component.example]
+source = "service.wasm"
+allowed_outbound_hosts = ["https://github.com", "https://api.github.com"]
+environment = { CLIENT_ID = "YOUR_GITHUB_APP_CLIENT_ID", CLIENT_SECRET = "YOUR_GITHUB_APP_CLIENT_SECRET" }
+[component.example.build]
+command = "./build.sh"
+```
+
+Now deploy your application.
+
+```sh
+$ spin deploy -f example
+Uploading example version 0.1.0 to Fermyon Cloud...
+Deploying...
+Waiting for application to become ready............. ready
+Available Routes:
+  example: https://example-12345.fermyon.app (wildcard)
+```
+
+In the example deploy output above, the app now exists at endpoint `https://example-12345.fermyon.app`. This means our callback URL should be `https://example-12345.fermyon.app/login/callback`. Configure this in the `spin.toml` with another environment variable:
+
+```sh
+[component.example]
+source = "service.wasm"
+allowed_outbound_hosts = ["https://github.com", "https://api.github.com"]
+environment = { CLIENT_ID = "YOUR_GITHUB_APP_CLIENT_ID", CLIENT_SECRET = "YOUR_GITHUB_APP_CLIENT_SECRET", AUTH_CALLBACK_URL = "https://example-<HASH>.fermyon.app/login/callback" }
+[component.example.build]
+command = "./build.sh"
+```
+
+Now, redeploy with another `spin deploy -f example`. Be sure to update your GitHub OAuth App to update the callback URL.
+
+This example uses environment variable to import secrets, since that is a ubiquitous interface and enables cross cloud portability of your component. If you are interested in configuring dynamic secrets that are not exposed in text in your `spin.toml` and can be updated with the `spin cloud variables` CLI, see [Spin's documentation on configuring application variables](https://developer.fermyon.com/spin/v2/variables#application-variables).
