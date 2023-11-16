@@ -18,16 +18,16 @@ The `example/` directory contains a Spin application which consists of one http 
 
 ### Pre-requisites
 
-- Install [cargo component](https://github.com/bytecodealliance/cargo-component):
+- Install [cargo component v0.4.0](https://github.com/bytecodealliance/cargo-component):
 
 ```bash
-cargo install --git https://github.com/bytecodealliance/cargo-component cargo-component
+cargo install --git https://github.com/bytecodealliance/cargo-component --tag v0.4.0 cargo-component --locked
 ```
 
-- Install a fork of [wasm-tools](https://github.com/dicej/wasm-tools/tree/wasm-compose-resource-imports): 
+- Install [wasm-tools](https://github.com/bytecodealliance/wasm-tools): 
 
 ```bash
-cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-resource-imports wasm-tools --locked
+cargo install --git https://github.com/bytecodealliance/wasm-tools wasm-tools --locked
 ```
 
 - Install latest [Spin](https://github.com/fermyon/spin)
