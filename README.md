@@ -11,23 +11,17 @@ The `github-oauth/` directory contains an API for using GitHub oauth in an appli
 3. The `authenticate` handler which validates a given access token in an incoming request with the GitHub user API.
 4. The `login` handler which returns a login button.
 
-The `example/` directory contains a Spin application which consists of one http handler which returns an HTTP response contains `Hello, Fermyon!` in the body. In the `spin.toml` file, the component build instructions point to a `build.sh` script which builds the example component and composes it with the github-oauth component.
+The `example-app/` directory contains a Spin application which consists of one http handler which returns an HTTP response contains `Hello, Fermyon!` in the body.
 
 
 ## Demo instructions
 
 ### Pre-requisites
 
-- Install [cargo component v0.4.0](https://github.com/bytecodealliance/cargo-component):
+- Install [cargo component](https://github.com/bytecodealliance/cargo-component):
 
 ```bash
-cargo install --git https://github.com/bytecodealliance/cargo-component --tag v0.4.0 cargo-component --locked
-```
-
-- Install [wasm-tools](https://github.com/bytecodealliance/wasm-tools): 
-
-```bash
-cargo install --git https://github.com/bytecodealliance/wasm-tools wasm-tools --locked
+cargo install cargo-component --locked
 ```
 
 - Install latest [Spin](https://github.com/fermyon/spin)
@@ -38,15 +32,13 @@ cargo install --git https://github.com/bytecodealliance/wasm-tools wasm-tools --
 
 ### Build the components and run the demo
 
+> NOTE: The build script `build.sh` in the `Spin.toml` will build both the `example-app` and `github-oauth` projects.
+
 ```bash
-
-# Build the middleware
-cargo component build --manifest-path github-oauth/Cargo.toml --release
-
 # Build and run the example
-spin up --build -f example -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
+spin up --build -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
 
-# Open http://127.0.0.1:3000/login in a browser
+# Open http://127.0.0.1:3000/ in a browser
 ```
 
 ### Running with Wasmtime
@@ -55,24 +47,27 @@ This component can be universally run by runtimes that support WASI preview 2's 
 world](https://github.com/WebAssembly/wasi-http/blob/main/wit/proxy.wit). For example, it can be
 served directly by Wasmtime, the runtime embedded in Spin. First, ensure you have installed the
 [Wasmtime CLI](https://github.com/bytecodealliance/wasmtime/releases) with at least version
-`v14.0.3`. We will use the `wasmtime serve` subcommand which serves requests to/from a WASI HTTP
+`v21.0.1`. We will use the `wasmtime serve` subcommand which serves requests to/from a WASI HTTP
 component.
 
-Unfortunately, `wasmtime serve` does not currently support setting environment variables in
-component, so we cannot pass environment variables at runtime as we did with Spin. Instead, set the
-`CLIENT_ID` and `CLIENT_SECRET` oauth app secrets generated in the [prerequisites](#pre-requisites)
-step as environment variables and build the oauth component with the `compile-time-secrets` feature
-flag. The flag ensures the environment variables are set in the component at compile time so they
-are no longer needed from the WebAssembly runtime. It is not recommended to embed secrets in production applications; rather, environment variables should be passed at runtime if the WebAssembly Host supports it. This is [configurable with Spin and Fermyon Cloud](#using-runtime-environment-variables).
+- Install [wac](https://github.com/bytecodealliance/wac):
+
+```bash
+cargo install wac-cli --locked
+```
 
 ```bash
 export CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> 
 export CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
-cargo component build --manifest-path github-oauth/Cargo.toml --release --features compile-time-secrets
-# Compose the auth component with the business logic component using wasm-tools
-cd example && ./build.sh
+
+# Build the example-app and github-oauth component
+spin build
+
+# Compose the example-app with the github-oauth component
+wac plug --plug target/wasm32-wasip1/release/example.wasm target/wasm32-wasip1/release/github_oauth.wasm -o service.wasm
+
 # Serve the component on the expected host and port
-wasmtime serve service.wasm --addr 127.0.0.1:3000
+wasmtime serve service.wasm  -S cli --addr 127.0.0.1:3000
 ```
 
 ### Configuring the callback URL
@@ -84,50 +79,43 @@ export AUTH_CALLBACK_URL=http://my-auth-app.fermyon.app/login/callback
 export CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> 
 export CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
 cargo component build --manifest-path github-oauth/Cargo.toml --release --features compile-time-secrets
-spin deploy -f example 
+spin deploy
 ```
 
 ### Using Runtime Environment Variables
 
 Not all WebAssembly runtimes fully support exporting the [`wasi:cli/environment`](https://github.com/WebAssembly/wasi-cli/blob/main/wit/environment.wit) interface to components. Spin, however, does support this and can load environment variables into a component's environment. Simply pass the environment variables during a `spin up`:
 ```sh
-cargo component build --manifest-path github-oauth/Cargo.toml --release
-spin up --build -f example -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
+spin up --build -e CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> -e CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
 ```
 
 To deploy an app to Fermyon Cloud that uses environment variables, you need to [configure them in your `spin.toml`](https://developer.fermyon.com/spin/v2/writing-apps#adding-environment-variables-to-components). Update [the example application manifest](./example/spin.toml) to contain your `CLIENT_ID` and `CLIENT_SECRET` environment variables. Since we do not know the endpoint for our Fermyon Cloud application until after the first deploy, we cannot yet configure the `AUTH_CALLBACK_URL`.
 
-```sh
-[component.example]
-source = "service.wasm"
-allowed_outbound_hosts = ["https://github.com", "https://api.github.com"]
+```toml
+[component.frontend]
+# ...
 environment = { CLIENT_ID = "YOUR_GITHUB_APP_CLIENT_ID", CLIENT_SECRET = "YOUR_GITHUB_APP_CLIENT_SECRET" }
-[component.example.build]
-command = "./build.sh"
 ```
 
 Now deploy your application.
 
 ```sh
-$ spin deploy -f example
-Uploading example version 0.1.0 to Fermyon Cloud...
+$ spin deploy
+Uploading github-oauth2-example version 0.1.0 to Fermyon Cloud...
 Deploying...
 Waiting for application to become ready............. ready
 Available Routes:
-  example: https://example-12345.fermyon.app (wildcard)
+  example: https://github-oauth2-example-12345.fermyon.app (wildcard)
 ```
 
-In the example deploy output above, the app now exists at endpoint `https://example-12345.fermyon.app`. This means our callback URL should be `https://example-12345.fermyon.app/login/callback`. Configure this in the `spin.toml` with another environment variable:
+In the example deploy output above, the app now exists at endpoint `https://github-oauth2-example-12345.fermyon.app`. This means our callback URL should be `https://github-oauth2-example-12345.fermyon.app/login/callback`. Configure this in the `spin.toml` with another environment variable:
 
-```sh
-[component.example]
-source = "service.wasm"
-allowed_outbound_hosts = ["https://github.com", "https://api.github.com"]
-environment = { CLIENT_ID = "YOUR_GITHUB_APP_CLIENT_ID", CLIENT_SECRET = "YOUR_GITHUB_APP_CLIENT_SECRET", AUTH_CALLBACK_URL = "https://example-<HASH>.fermyon.app/login/callback" }
-[component.example.build]
-command = "./build.sh"
+```toml
+[component.frontend]
+# ...
+environment = { CLIENT_ID = "YOUR_GITHUB_APP_CLIENT_ID", CLIENT_SECRET = "YOUR_GITHUB_APP_CLIENT_SECRET", AUTH_CALLBACK_URL = "https://github-oauth2-example-<HASH>.fermyon.app/login/callback" }
 ```
 
-Now, redeploy with another `spin deploy -f example`. Be sure to update your GitHub OAuth App to update the callback URL.
+Now, redeploy with another `spin deploy`. Be sure to update your GitHub OAuth App to update the callback URL.
 
 This example uses environment variable to import secrets, since that is a ubiquitous interface and enables cross cloud portability of your component. If you are interested in configuring dynamic secrets that are not exposed in text in your `spin.toml` and can be updated with the `spin cloud variables` CLI, see [Spin's documentation on configuring application variables](https://developer.fermyon.com/spin/v2/variables#application-variables).

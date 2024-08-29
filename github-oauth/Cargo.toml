@@ -11,23 +11,15 @@ crate-type = ["cdylib"]
 anyhow = "1"
 cookie = "0.18"
 futures = "0.3.28"
-http = "0.2"
+http = "1.0"
 json = "0.12.4"
-oauth2 = { version = "4.4.2", default-features = false }
+oauth2 = { git = "https://github.com/ramosbugs/oauth2-rs", rev = "c74aec9", default-features = false }
 serde = { version = "1.0.190", features = ["derive"] }
 serde_json = "1.0.108"
-spin-sdk = { git = "https://github.com/fermyon/spin", branch = "main" }
+spin-sdk = { workspace = true }
+spin-executor = { workspace = true }
 url = "2.4.0"
-wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen", rev = "3518b5e2f08e4028b7f0cf0ed386e03423a3cd1b" }
-
-[workspace]
-
-[package.metadata.component]
-package = "middleware:http-auth"
-
-[package.metadata.component.target.dependencies]
-"wasi:http" = { path = "wit/deps/http" }
-"wasi:io" = { path = "wit/deps/io" }
+wit-bindgen = "0.16.0"
 
 [features]
 # Inject oauth credentials environment variables at compile time rather than runtime
