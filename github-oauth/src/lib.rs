@@ -11,7 +11,8 @@ async fn middleware(request: IncomingRequest, output: ResponseOutparam) {
         Ok(url) => url,
         Err(e) => {
             eprintln!("error parsing URL: {e}");
-            let response = OutgoingResponse::new(500, &Headers::new(&[]));
+            let response = OutgoingResponse::new(Headers::new());
+            response.set_status_code(500).unwrap();
             output.set(response);
             return;
         }
@@ -26,26 +27,23 @@ async fn middleware(request: IncomingRequest, output: ResponseOutparam) {
 }
 
 fn get_url(request: &IncomingRequest) -> anyhow::Result<Url> {
-    let mut host_header = request
-        .headers()
-        .get(http::header::HOST.as_str())
-        .into_iter();
-    let header = &host_header
-        .next()
+    let authority = request
+        .authority()
         .ok_or(anyhow::anyhow!("missing host header"))?;
-    let host = String::from_utf8_lossy(header);
+
     let path = request.path_with_query().unwrap_or_default();
-    let full = format!("http://{}{}", host, path);
+    let full = format!("http://{}{}", authority, path);
     Ok(Url::parse(&full)?)
 }
 
 wit_bindgen::generate!({
     runtime_path: "::spin_sdk::wit_bindgen::rt",
     world: "wasi-http-import",
-    path: "wit",
+    path: "wits",
     with: {
-        "wasi:http/types@0.2.0-rc-2023-10-18": spin_sdk::wit::wasi::http::types,
-        "wasi:io/streams@0.2.0-rc-2023-10-18": spin_sdk::wit::wasi::io::streams,
-        "wasi:io/poll@0.2.0-rc-2023-10-18": spin_sdk::wit::wasi::io::poll,
+        "wasi:http/types@0.2.0": spin_sdk::wit::wasi::http::types,
+        "wasi:io/error@0.2.0": spin_executor::bindings::wasi::io::error,
+        "wasi:io/streams@0.2.0": spin_executor::bindings::wasi::io::streams,
+        "wasi:io/poll@0.2.0": spin_executor::bindings::wasi::io::poll,
     }
 });

@@ -1,28 +1,21 @@
 use super::OAuth2;
 use cookie::{Cookie, SameSite};
-use oauth2::{AuthorizationCode, CsrfToken, RedirectUrl, TokenResponse};
+use oauth2::{basic, AuthorizationCode, CsrfToken, TokenResponse};
 use spin_sdk::http::{send, Headers, OutgoingResponse, ResponseOutparam, SendError};
 use url::Url;
 
 pub async fn callback(url: Url, output: ResponseOutparam) {
-    let callback_url = match std::env::var("AUTH_CALLBACK_URL") {
-        Ok(runtime_env) => runtime_env,
-        Err(_) => crate::api::AUTH_CALLBACK_URL
-            .unwrap_or("http://127.0.0.1:3000/login/callback")
-            .to_string(),
-    };
     let client = match OAuth2::try_init() {
-        Ok(config) => {
-            let redirect_url =
-                RedirectUrl::new(callback_url.clone()).expect("Invalid redirect URL");
-            config
-                .into_client()
-                .set_auth_type(oauth2::AuthType::RequestBody)
-                .set_redirect_uri(redirect_url)
-        }
+        Ok(config) => basic::BasicClient::new(config.client_id)
+            .set_client_secret(config.client_secret)
+            .set_auth_uri(config.auth_url)
+            .set_token_uri(config.token_url)
+            .set_redirect_uri(config.redirect_url)
+            .set_auth_type(oauth2::AuthType::RequestBody),
         Err(error) => {
             eprintln!("failed to initialize oauth client: {error}");
-            let response = OutgoingResponse::new(500, &Headers::new(&[]));
+            let response = OutgoingResponse::new(Headers::new());
+            response.set_status_code(500).unwrap();
             output.set(response);
             return;
         }
@@ -32,7 +25,8 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
         Ok((code, state)) => (code, state),
         Err(error) => {
             eprintln!("error retrieving required query parameters: {error}");
-            let response = OutgoingResponse::new(500, &Headers::new(&[]));
+            let response = OutgoingResponse::new(Headers::new());
+            response.set_status_code(500).unwrap();
             output.set(response);
             return;
         }
@@ -42,10 +36,10 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
 
     let result = client
         .exchange_code(code)
-        .request_async(oauth_http_client)
+        .request_async(&oauth_http_client)
         .await;
 
-    let mut location = url::Url::parse(&callback_url).unwrap();
+    let mut location = client.redirect_uri().unwrap().url().clone();
     location.set_path("");
     match result {
         Ok(result) => {
@@ -58,24 +52,31 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
             oauth_cookie.set_http_only(true);
             oauth_cookie.set_path("/");
 
-            let headers = Headers::new(&[
-                ("Content-Type".to_string(), "text/plain".as_bytes().to_vec()),
-                (
-                    "Location".to_string(),
-                    location.to_string().as_bytes().to_vec(),
-                ),
-                (
-                    "Set-Cookie".to_string(),
-                    oauth_cookie.to_string().as_bytes().to_vec(),
-                ),
-            ]);
+            let headers = Headers::new();
+            headers
+                .set(&"Content-Type".to_string(), &[b"text/plain".to_vec()])
+                .unwrap();
+            headers
+                .set(
+                    &"Location".to_string(),
+                    &[location.to_string().as_bytes().to_vec()],
+                )
+                .unwrap();
+            headers
+                .set(
+                    &"Set-Cookie".to_string(),
+                    &[oauth_cookie.to_string().as_bytes().to_vec()],
+                )
+                .unwrap();
 
-            let response = OutgoingResponse::new(301, &headers);
+            let response = OutgoingResponse::new(headers);
+            response.set_status_code(301).unwrap();
             output.set(response);
         }
         Err(error) => {
             eprintln!("error exchanging code for token with github: {error}");
-            let response = OutgoingResponse::new(403, &Headers::new(&[]));
+            let response = OutgoingResponse::new(Headers::new());
+            response.set_status_code(403).unwrap();
             output.set(response);
         }
     }
@@ -107,21 +108,5 @@ fn get_code_and_state_param(url: &Url) -> anyhow::Result<(AuthorizationCode, Csr
 }
 
 async fn oauth_http_client(req: oauth2::HttpRequest) -> Result<oauth2::HttpResponse, SendError> {
-    let mut builder = http::Request::builder()
-        .method(req.method)
-        .uri(req.url.as_str());
-
-    for (name, value) in &req.headers {
-        builder = builder.header(name, value);
-    }
-
-    let res = send::<_, http::Response<String>>(builder.body(req.body).unwrap()).await?;
-
-    let (parts, body) = res.into_parts();
-
-    Ok(oauth2::HttpResponse {
-        status_code: parts.status,
-        headers: parts.headers,
-        body: body.into_bytes(),
-    })
+    send::<_, http::Response<Vec<u8>>>(req).await
 }

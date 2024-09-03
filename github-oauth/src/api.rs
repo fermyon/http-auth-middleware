@@ -1,5 +1,5 @@
 use anyhow::Context;
-use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, TokenUrl};
+use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 
 pub use authenticate::authenticate;
 pub use authorize::authorize;
@@ -12,13 +12,14 @@ mod callback;
 mod login;
 
 pub struct OAuth2 {
-    client_secret: ClientSecret,
-    client_id: ClientId,
-    auth_url: AuthUrl,
-    token_url: TokenUrl,
+    pub client_secret: ClientSecret,
+    pub client_id: ClientId,
+    pub auth_url: AuthUrl,
+    pub token_url: TokenUrl,
+    pub redirect_url: RedirectUrl,
 }
 
-pub const AUTH_CALLBACK_URL: Option<&'static str> = option_env!("AUTH_CALLBACK_URL");
+const AUTH_CALLBACK_URL: Option<&'static str> = option_env!("AUTH_CALLBACK_URL");
 
 impl OAuth2 {
     pub fn try_init() -> anyhow::Result<Self> {
@@ -43,20 +44,21 @@ impl OAuth2 {
         let auth_url = AuthUrl::new("https://github.com/login/oauth/authorize".to_string())?;
         let token_url = TokenUrl::new("https://github.com/login/oauth/access_token".to_string())?;
 
+        let redirect_url = match std::env::var("AUTH_CALLBACK_URL") {
+            Ok(runtime_env) => RedirectUrl::new(runtime_env)?,
+            Err(_) => RedirectUrl::new(
+                AUTH_CALLBACK_URL
+                    .unwrap_or("http://127.0.0.1:3000/login/callback")
+                    .to_string(),
+            )?,
+        };
+
         Ok(OAuth2 {
             client_secret,
             client_id,
             token_url,
             auth_url,
+            redirect_url,
         })
-    }
-
-    pub fn into_client(self) -> BasicClient {
-        BasicClient::new(
-            self.client_id,
-            Some(self.client_secret),
-            self.auth_url,
-            Some(self.token_url),
-        )
     }
 }
