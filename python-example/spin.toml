@@ -1,0 +1,16 @@
+spin_manifest_version = "1"
+authors = ["Michelle Dhanani <michelle@fermyon.com>"]
+description = ""
+name = "pythonexample"
+trigger = { type = "http", base = "/" }
+version = "0.1.0"
+
+[[component]]
+id = "pythonexample"
+source = "app.wasm"
+allowed_http_hosts = ["github.com", "api.github.com"]
+[component.trigger]
+route = "/..."
+[component.build]
+command = "componentize-py -d wit -w http-app componentize app -o py.wasm && wasm-tools compose ../github-oauth/target/wasm32-wasi/release/github_oauth.wasm -d py.wasm -o app.wasm"
+watch = ["app.py", "Pipfile"]
