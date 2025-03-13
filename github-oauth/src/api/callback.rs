@@ -1,10 +1,12 @@
 use super::OAuth2;
+use crate::wasi::http::types::{Body, ErrorCode, Headers, Request, Response};
+use crate::wit_stream;
 use cookie::{Cookie, SameSite};
 use oauth2::{basic, AuthorizationCode, CsrfToken, TokenResponse};
-use spin_sdk::http::{send, Headers, OutgoingResponse, ResponseOutparam, SendError};
 use url::Url;
+use wit_bindgen_rt::async_support::futures::{SinkExt, StreamExt};
 
-pub async fn callback(url: Url, output: ResponseOutparam) {
+pub async fn callback(url: Url) -> Result<Response, ErrorCode> {
     let client = match OAuth2::try_init() {
         Ok(config) => basic::BasicClient::new(config.client_id)
             .set_client_secret(config.client_secret)
@@ -14,10 +16,9 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
             .set_auth_type(oauth2::AuthType::RequestBody),
         Err(error) => {
             eprintln!("failed to initialize oauth client: {error}");
-            let response = OutgoingResponse::new(Headers::new());
+            let response = Response::new(Headers::new(), None);
             response.set_status_code(500).unwrap();
-            output.set(response);
-            return;
+            return Ok(response);
         }
     };
 
@@ -25,10 +26,9 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
         Ok((code, state)) => (code, state),
         Err(error) => {
             eprintln!("error retrieving required query parameters: {error}");
-            let response = OutgoingResponse::new(Headers::new());
+            let response = Response::new(Headers::new(), None);
             response.set_status_code(500).unwrap();
-            output.set(response);
-            return;
+            return Ok(response);
         }
     };
 
@@ -54,30 +54,24 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
 
             let headers = Headers::new();
             headers
-                .set(&"Content-Type".to_string(), &[b"text/plain".to_vec()])
+                .set("Content-Type", &[b"text/plain".to_vec()])
                 .unwrap();
             headers
-                .set(
-                    &"Location".to_string(),
-                    &[location.to_string().as_bytes().to_vec()],
-                )
+                .set("Location", &[location.to_string().into_bytes()])
                 .unwrap();
             headers
-                .set(
-                    &"Set-Cookie".to_string(),
-                    &[oauth_cookie.to_string().as_bytes().to_vec()],
-                )
+                .set("Set-Cookie", &[oauth_cookie.to_string().into_bytes()])
                 .unwrap();
 
-            let response = OutgoingResponse::new(headers);
+            let response = Response::new(headers, None);
             response.set_status_code(301).unwrap();
-            output.set(response);
+            Ok(response)
         }
         Err(error) => {
             eprintln!("error exchanging code for token with github: {error}");
-            let response = OutgoingResponse::new(Headers::new());
+            let response = Response::new(Headers::new(), None);
             response.set_status_code(403).unwrap();
-            output.set(response);
+            Ok(response)
         }
     }
 }
@@ -107,6 +101,98 @@ fn get_code_and_state_param(url: &Url) -> anyhow::Result<(AuthorizationCode, Csr
     Ok((code, state))
 }
 
-async fn oauth_http_client(req: oauth2::HttpRequest) -> Result<oauth2::HttpResponse, SendError> {
-    send::<_, http::Response<Vec<u8>>>(req).await
+async fn oauth_http_client(
+    oauth_req: oauth2::HttpRequest,
+) -> Result<oauth2::HttpResponse, ErrorCode> {
+    let wasi_headers = Headers::new();
+    for (name, value) in oauth_req.headers() {
+        wasi_headers
+            .set(name.to_string().as_str(), &[value.as_bytes().to_vec()])
+            .unwrap();
+    }
+
+    let oauth_body = oauth_req.body().clone();
+    let wasi_body = if oauth_body.is_empty() {
+        None
+    } else {
+        let (mut writer, reader) = wit_stream::new();
+        wit_bindgen_rt::async_support::spawn(async move { writer.send(oauth_body).await.unwrap() });
+        Some(Body::new(reader).0)
+    };
+
+    let wasi_request = Request::new(wasi_headers, wasi_body, None);
+    wasi_request
+        .set_method(&wasi_method(oauth_req.method()))
+        .unwrap();
+    wasi_request
+        .set_scheme(oauth_req.uri().scheme().map(wasi_scheme))
+        .unwrap();
+    wasi_request
+        .set_authority(oauth_req.uri().authority().map(|a| a.as_str()))
+        .unwrap();
+    wasi_request
+        .set_path_with_query(oauth_req.uri().path_and_query().map(|pq| pq.as_str()))
+        .unwrap();
+
+    let wasi_response = crate::wasi::http::handler::handle(wasi_request).await?;
+
+    let oauth_response_body = body_to_vec(&wasi_response).await.map_err(as_code)?;
+
+    let mut oauth_response = oauth2::HttpResponse::new(oauth_response_body);
+    *oauth_response.status_mut() =
+        oauth2::http::StatusCode::from_u16(wasi_response.status_code()).unwrap();
+
+    for (name, value) in wasi_response.headers().entries() {
+        oauth_response.headers_mut().insert(
+            oauth2::http::HeaderName::from_bytes(name.as_bytes()).unwrap(),
+            oauth2::http::HeaderValue::from_bytes(&value).unwrap(),
+        );
+    }
+
+    Ok(oauth_response)
+}
+
+async fn body_to_vec(response: &crate::wasi::http::types::Response) -> anyhow::Result<Vec<u8>> {
+    let Some(body) = response.body() else {
+        return Ok(vec![]);
+    };
+
+    let (mut reader, _efut) = body
+        .stream()
+        .map_err(|_| anyhow::anyhow!("failed to stream body"))?;
+
+    let mut vector = vec![];
+
+    loop {
+        match reader.next().await {
+            None => break,
+            Some(chunk) => {
+                let mut chunk = chunk?;
+                vector.append(&mut chunk);
+            }
+        }
+    }
+
+    Ok(vector)
+}
+
+fn as_code(e: anyhow::Error) -> ErrorCode {
+    ErrorCode::InternalError(Some(e.to_string()))
+}
+
+fn wasi_method(method: &oauth2::http::Method) -> crate::wasi::http::types::Method {
+    match *method {
+        oauth2::http::Method::GET => crate::wasi::http::types::Method::Get,
+        oauth2::http::Method::POST => crate::wasi::http::types::Method::Post,
+        _ => panic!("unexpected OAuth method {}", method),
+    }
+}
+
+fn wasi_scheme(scheme: &oauth2::http::uri::Scheme) -> &'static crate::wasi::http::types::Scheme {
+    // TODO: better way?
+    match scheme.as_str() {
+        "http" => &crate::wasi::http::types::Scheme::Http,
+        "https" => &crate::wasi::http::types::Scheme::Https,
+        _ => panic!("unexpected OAuth scheme {}", scheme),
+    }
 }

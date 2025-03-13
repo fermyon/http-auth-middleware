@@ -1,5 +1,5 @@
 [package]
-name = "example"
+name = "example-app"
 description = "A simple HTTP handler"
 version = "0.1.0"
 edition = "2021"
@@ -9,5 +9,11 @@ crate-type = [ "cdylib" ]
 
 [dependencies]
 anyhow = { workspace = true }
-http = { workspace = true }
-spin-sdk = { workspace = true }
+
+[dependencies.wit-bindgen]
+git = "https://github.com/bytecodealliance/wit-bindgen"
+rev = "d73c073b"
+
+[dependencies.wit-bindgen-rt]
+git = "https://github.com/bytecodealliance/wit-bindgen"
+rev = "d73c073b"
