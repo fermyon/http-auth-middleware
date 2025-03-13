@@ -1,10 +1,16 @@
 use super::OAuth2;
+use crate::response;
+
 use cookie::{Cookie, SameSite};
 use oauth2::{basic, AuthorizationCode, CsrfToken, TokenResponse};
-use spin_sdk::http::{send, Headers, OutgoingResponse, ResponseOutparam, SendError};
+use spin_sdk::http_wasip3::{send, EmptyBody, FullBody, IntoResponse};
 use url::Url;
 
-pub async fn callback(url: Url, output: ResponseOutparam) {
+pub async fn callback(url: &http::Uri) -> impl IntoResponse {
+    let Ok(url) = url::Url::parse(&url.to_string()) else {
+        return response::internal_server_error().into_response();
+    };
+
     let client = match OAuth2::try_init() {
         Ok(config) => basic::BasicClient::new(config.client_id)
             .set_client_secret(config.client_secret)
@@ -14,10 +20,7 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
             .set_auth_type(oauth2::AuthType::RequestBody),
         Err(error) => {
             eprintln!("failed to initialize oauth client: {error}");
-            let response = OutgoingResponse::new(Headers::new());
-            response.set_status_code(500).unwrap();
-            output.set(response);
-            return;
+            return response::internal_server_error().into_response();
         }
     };
 
@@ -25,10 +28,7 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
         Ok((code, state)) => (code, state),
         Err(error) => {
             eprintln!("error retrieving required query parameters: {error}");
-            let response = OutgoingResponse::new(Headers::new());
-            response.set_status_code(500).unwrap();
-            output.set(response);
-            return;
+            return response::internal_server_error().into_response();
         }
     };
 
@@ -52,32 +52,17 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
             oauth_cookie.set_http_only(true);
             oauth_cookie.set_path("/");
 
-            let headers = Headers::new();
-            headers
-                .set(&"Content-Type".to_string(), &[b"text/plain".to_vec()])
-                .unwrap();
-            headers
-                .set(
-                    &"Location".to_string(),
-                    &[location.to_string().as_bytes().to_vec()],
-                )
-                .unwrap();
-            headers
-                .set(
-                    &"Set-Cookie".to_string(),
-                    &[oauth_cookie.to_string().as_bytes().to_vec()],
-                )
-                .unwrap();
-
-            let response = OutgoingResponse::new(headers);
-            response.set_status_code(301).unwrap();
-            output.set(response);
+            http::Response::builder()
+                .status(301)
+                .header("Content-Type", "text/plain")
+                .header("Location", location.as_str())
+                .header("Set-Cookie", oauth_cookie.to_string())
+                .body(EmptyBody::new())
+                .into_response()
         }
         Err(error) => {
             eprintln!("error exchanging code for token with github: {error}");
-            let response = OutgoingResponse::new(Headers::new());
-            response.set_status_code(403).unwrap();
-            output.set(response);
+            response::forbidden().into_response()
         }
     }
 }
@@ -107,6 +92,15 @@ fn get_code_and_state_param(url: &Url) -> anyhow::Result<(AuthorizationCode, Csr
     Ok((code, state))
 }
 
-async fn oauth_http_client(req: oauth2::HttpRequest) -> Result<oauth2::HttpResponse, SendError> {
-    send::<_, http::Response<Vec<u8>>>(req).await
+async fn oauth_http_client(
+    oauth_req: oauth2::HttpRequest,
+) -> Result<oauth2::HttpResponse, spin_sdk::http_wasip3::Error> {
+    use spin_sdk::http_wasip3::body::IncomingBodyExt;
+
+    let wasi_req = oauth_req.map(|bod| FullBody::new(bytes::Bytes::from_owner(bod)));
+    let wasi_response = send(wasi_req).await?;
+    let (parts, body) = wasi_response.into_parts();
+    let sync_body = body.bytes().await?.to_vec();
+    let oauth_response = http::Response::from_parts(parts, sync_body);
+    Ok(oauth_response)
 }

@@ -3,11 +3,12 @@ members = [
     "github-oauth",
     "example-app",
 ]
+resolver = "2"
 
 [workspace.dependencies]
-anyhow = "1"
+anyhow = "1.98"
 http = "1.0.0"
-spin-sdk = "3.0.1"
+spin-sdk = { version = "5.1.0", features = ["wasip3-unstable"] }
 spin-executor = "3.0.1"
 
 [profile.release]

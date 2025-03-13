@@ -1,0 +1,13 @@
+// TODO: this doesn't work yet because WAC support for WASI P3
+// is not complete. So unused for now but hopefully we can switch
+// over in the near future.
+
+package authenticated:example@0.1.0;
+
+let bizzo = new business:logic { ... };
+
+let composed = new middle:ware {
+    "double:http/chain-http": bizzo["wasi:http/handler@0.3.0-rc-2025-09-16"], ...
+};
+
+export composed...;

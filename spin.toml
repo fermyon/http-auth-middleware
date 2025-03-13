@@ -8,11 +8,13 @@ description = "A simple HTTP handler"
 [[trigger.http]]
 route = "/..."
 component = "frontend"
+executor = { type = "wasip3-unstable" }
 
 [component.frontend]
-source = "target/wasm32-wasip2/release/github_oauth.wasm"
+source = "p3/authed_app.wasm"  # for P3 we have to post-process compose in build.sh
 allowed_outbound_hosts = ["https://github.com", "https://api.github.com"]
 [component.frontend.build]
 command = "./build.sh"
-[component.frontend.dependencies]
-"wasi:http/incoming-handler@0.2.0" = { path = "target/wasm32-wasip2/release/example.wasm" }
+# Unused because for now we have to precompose in build.sh
+# [component.frontend.dependencies]
+# "wasi:http/incoming-handler@0.2.0" = { path = "target/wasm32-wasip1/release/example.wasm" }

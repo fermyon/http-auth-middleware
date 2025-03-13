@@ -1,11 +1,6 @@
-use spin_sdk::http::{IntoResponse, Request};
-use spin_sdk::http_component;
+use spin_sdk::http_wasip3::{Request, IntoResponse};
 
-/// A simple Spin HTTP component.
-#[http_component]
-fn handle_http_handler(_req: Request) -> anyhow::Result<impl IntoResponse> {
-    Ok(http::Response::builder()
-        .status(200)
-        .header("content-type", "text/plain")
-        .body("Business logic executed!")?)
+#[spin_sdk::http_wasip3::http_service]
+async fn handle(_request: Request) -> impl IntoResponse {
+    "Business logic executed!\n"
 }
