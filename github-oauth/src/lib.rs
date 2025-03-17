@@ -17,7 +17,7 @@ wit_bindgen::generate!({
     generate_all,
 });
 
-use wasi::http::types::{ErrorCode, Headers, Request, Response};
+use wasi::http::types::{ErrorCode, Headers, Request, Response, Scheme};
 
 struct Middleware;
 
@@ -50,6 +50,14 @@ fn get_url(request: &Request) -> anyhow::Result<Url> {
         .ok_or(anyhow::anyhow!("missing host header"))?;
 
     let path = request.path_with_query().unwrap_or_default();
-    let full = format!("http://{}{}", authority, path);
+
+    let scheme = match request.scheme() {
+        None => "http".to_owned(),
+        Some(Scheme::Http) => "http".to_owned(),
+        Some(Scheme::Https) => "https".to_owned(),
+        Some(Scheme::Other(s)) => s,
+    };
+
+    let full = format!("{scheme}://{authority}{path}");
     Ok(Url::parse(&full)?)
 }
