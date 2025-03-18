@@ -1,6 +1,7 @@
 use url::Url;
 
 mod api;
+mod sdk;
 
 wit_bindgen::generate!({
     path: "../wit",
@@ -17,7 +18,7 @@ wit_bindgen::generate!({
     generate_all,
 });
 
-use wasi::http::types::{ErrorCode, Headers, Request, Response, Scheme};
+use wasi::http::types::{ErrorCode, Request, Response, Scheme};
 
 struct Middleware;
 
@@ -27,9 +28,9 @@ impl exports::wasi::http::handler::Guest for Middleware {
             Ok(url) => url,
             Err(e) => {
                 eprintln!("error parsing URL: {e}");
-                let response = Response::new(Headers::new(), None);
-                response.set_status_code(500).unwrap();
-                return Ok(response);
+                return sdk::http::ResponseBuilder::new()
+                    .with_status_code(500)
+                    .empty();
             }
         };
 

@@ -1,7 +1,9 @@
 use super::OAuth2;
+use crate::{
+    sdk::http::ResponseBuilder,
+    wasi::http::types::{ErrorCode, Response},
+};
 use oauth2::{basic, CsrfToken, Scope};
-// use spin_sdk::http::{Headers, OutgoingResponse, ResponseOutparam};
-use crate::wasi::http::types::{ErrorCode, Headers, Response};
 
 /// `authorize` kicks off the oauth flow constructing the authorization url and redirecting the client to github
 /// to authorize the application to the user's profile.
@@ -15,9 +17,7 @@ pub async fn authorize() -> Result<Response, ErrorCode> {
             .set_auth_type(oauth2::AuthType::RequestBody),
         Err(error) => {
             eprintln!("failed to initialize oauth client: {error}");
-            let response = Response::new(Headers::new(), None);
-            response.set_status_code(500).unwrap();
-            return Ok(response);
+            return ResponseBuilder::new().with_status_code(500).empty();
         }
     };
 
@@ -30,12 +30,8 @@ pub async fn authorize() -> Result<Response, ErrorCode> {
 
     // TODO: cache the csrf token for validation on callback
 
-    let location = authorize_url.to_string().as_bytes().to_vec();
-    let headers = Headers::new();
-    headers.set("Location", &[location]).unwrap();
-
-    let response = Response::new(headers, None);
-    response.set_status_code(301).unwrap();
-
-    Ok(response)
+    ResponseBuilder::new()
+        .with_header("Location", &authorize_url)?
+        .with_status_code(301)
+        .empty()
 }

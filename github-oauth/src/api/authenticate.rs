@@ -1,7 +1,6 @@
-use crate::wasi::http::types::{Body, ErrorCode, Headers, Request, Response, Scheme};
-use crate::wit_stream;
+use crate::sdk::http::ResponseBuilder;
+use crate::wasi::http::types::{ErrorCode, Headers, Request, Response, Scheme};
 use cookie::Cookie;
-use futures::SinkExt;
 use http::header::COOKIE;
 
 /// `authenticate` validates the access token required in the incoming request by making an
@@ -13,7 +12,7 @@ pub async fn authenticate(request: Request) -> Result<Response, ErrorCode> {
         None => {
             eprintln!("no access token found in incoming request");
 
-            return Ok(unauthorized());
+            return unauthorized();
         }
     };
 
@@ -39,39 +38,21 @@ pub async fn authenticate(request: Request) -> Result<Response, ErrorCode> {
                 crate::double::http::chain_http::handle(request).await
             } else {
                 eprintln!("unauthenticated");
-
-                Ok(unauthorized())
+                unauthorized()
             }
         }
         Err(error) => {
             eprintln!("error authenticating with github: {error}");
-            let response = Response::new(Headers::new(), None);
-            response.set_status_code(500).unwrap();
-            Ok(response)
+            ResponseBuilder::new().with_status_code(500).empty()
         }
     }
 }
 
-fn unauthorized() -> Response {
-    let headers = Headers::new();
-    headers
-        .set("Content-Type", &[b"text/html".to_vec()])
-        .unwrap();
-
-    let (mut writer, reader) = wit_stream::new();
-    let (body, _err_fut) = Body::new(reader);
-
-    let response = Response::new(headers, Some(body));
-    response.set_status_code(403).unwrap();
-
-    wit_bindgen_rt::async_support::spawn(async move {
-        writer
-            .send(b"Unauthorized, <a href=\"/login\">login</a>".into())
-            .await
-            .unwrap();
-    });
-
-    response
+fn unauthorized() -> Result<Response, ErrorCode> {
+    ResponseBuilder::new()
+        .with_status_code(403)
+        .with_header("Content-Type", "text/html")?
+        .text("Unauthorized, <a href=\"/login\">login</a>")
 }
 
 fn get_access_token(request: &Request) -> Option<String> {
