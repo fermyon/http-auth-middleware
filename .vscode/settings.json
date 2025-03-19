@@ -4,7 +4,7 @@
     },
     "rust-analyzer.linkedProjects": [
         "github-oauth/Cargo.toml",
-        "example/Cargo.toml"
+        "example-app/Cargo.toml"
     ],
     "rust-analyzer.checkOnSave": true,
     "rust-analyzer.check.overrideCommand": ["cargo", "component", "check", "--message-format=json"],

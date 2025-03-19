@@ -16,10 +16,15 @@ json = "0.12.4"
 oauth2 = { git = "https://github.com/ramosbugs/oauth2-rs", rev = "c74aec9", default-features = false }
 serde = { version = "1.0.190", features = ["derive"] }
 serde_json = "1.0.108"
-spin-sdk = { workspace = true }
-spin-executor = { workspace = true }
 url = "2.4.0"
-wit-bindgen = "0.16.0"
+
+[dependencies.wit-bindgen]
+git = "https://github.com/bytecodealliance/wit-bindgen"
+rev = "d73c073b"
+
+[dependencies.wit-bindgen-rt]
+git = "https://github.com/bytecodealliance/wit-bindgen"
+rev = "d73c073b"
 
 [features]
 # Inject oauth credentials environment variables at compile time rather than runtime

@@ -1,11 +1,27 @@
-use spin_sdk::http::{IntoResponse, Request};
-use spin_sdk::http_component;
+wit_bindgen::generate!({
+    path: "../wit/wasi-http/wit-0.3.0-draft",
+    world: "wasi:http/proxy",
+    async: {
+        exports: [
+            "wasi:http/handler@0.3.0-draft#handle",
+        ],
+    },
+    generate_all,
+});
 
-/// A simple Spin HTTP component.
-#[http_component]
-fn handle_http_handler(_req: Request) -> anyhow::Result<impl IntoResponse> {
-    Ok(http::Response::builder()
-        .status(200)
-        .header("content-type", "text/plain")
-        .body("Business logic executed!")?)
+mod sdk;
+
+use wasi::http::types::{ErrorCode, Request, Response};
+
+struct ExampleApp;
+
+impl exports::wasi::http::handler::Guest for ExampleApp {
+    async fn handle(_request: Request) -> Result<Response, ErrorCode> {
+        sdk::http::ResponseBuilder::new()
+            .with_status_code(200)
+            .with_header("content-type", "text/plain")?
+            .text("Business logic executed!\n")
+    }
 }
+
+export!(ExampleApp);

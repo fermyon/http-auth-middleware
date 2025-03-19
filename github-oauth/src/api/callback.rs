@@ -1,10 +1,11 @@
 use super::OAuth2;
+use crate::sdk::http::{RequestBuilder, ResponseBuilder};
+use crate::wasi::http::types::{ErrorCode, Response};
 use cookie::{Cookie, SameSite};
 use oauth2::{basic, AuthorizationCode, CsrfToken, TokenResponse};
-use spin_sdk::http::{send, Headers, OutgoingResponse, ResponseOutparam, SendError};
 use url::Url;
 
-pub async fn callback(url: Url, output: ResponseOutparam) {
+pub async fn callback(url: Url) -> Result<Response, ErrorCode> {
     let client = match OAuth2::try_init() {
         Ok(config) => basic::BasicClient::new(config.client_id)
             .set_client_secret(config.client_secret)
@@ -14,10 +15,7 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
             .set_auth_type(oauth2::AuthType::RequestBody),
         Err(error) => {
             eprintln!("failed to initialize oauth client: {error}");
-            let response = OutgoingResponse::new(Headers::new());
-            response.set_status_code(500).unwrap();
-            output.set(response);
-            return;
+            return ResponseBuilder::new().with_status_code(5000).empty();
         }
     };
 
@@ -25,10 +23,7 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
         Ok((code, state)) => (code, state),
         Err(error) => {
             eprintln!("error retrieving required query parameters: {error}");
-            let response = OutgoingResponse::new(Headers::new());
-            response.set_status_code(500).unwrap();
-            output.set(response);
-            return;
+            return ResponseBuilder::new().with_status_code(5000).empty();
         }
     };
 
@@ -52,32 +47,16 @@ pub async fn callback(url: Url, output: ResponseOutparam) {
             oauth_cookie.set_http_only(true);
             oauth_cookie.set_path("/");
 
-            let headers = Headers::new();
-            headers
-                .set(&"Content-Type".to_string(), &[b"text/plain".to_vec()])
-                .unwrap();
-            headers
-                .set(
-                    &"Location".to_string(),
-                    &[location.to_string().as_bytes().to_vec()],
-                )
-                .unwrap();
-            headers
-                .set(
-                    &"Set-Cookie".to_string(),
-                    &[oauth_cookie.to_string().as_bytes().to_vec()],
-                )
-                .unwrap();
-
-            let response = OutgoingResponse::new(headers);
-            response.set_status_code(301).unwrap();
-            output.set(response);
+            ResponseBuilder::new()
+                .with_status_code(301)
+                .with_header("Content-Type", "text/plain")?
+                .with_header("Location", &location)?
+                .with_header("Set-Cookie", oauth_cookie.to_string())?
+                .empty()
         }
         Err(error) => {
             eprintln!("error exchanging code for token with github: {error}");
-            let response = OutgoingResponse::new(Headers::new());
-            response.set_status_code(403).unwrap();
-            output.set(response);
+            ResponseBuilder::new().with_status_code(403).empty()
         }
     }
 }
@@ -107,6 +86,12 @@ fn get_code_and_state_param(url: &Url) -> anyhow::Result<(AuthorizationCode, Csr
     Ok((code, state))
 }
 
-async fn oauth_http_client(req: oauth2::HttpRequest) -> Result<oauth2::HttpResponse, SendError> {
-    send::<_, http::Response<Vec<u8>>>(req).await
+async fn oauth_http_client(
+    oauth_req: oauth2::HttpRequest,
+) -> Result<oauth2::HttpResponse, ErrorCode> {
+    let wasi_request = RequestBuilder::from_hyper(oauth_req);
+
+    let wasi_response = crate::wasi::http::handler::handle(wasi_request).await?;
+
+    crate::sdk::http::as_hyper(wasi_response).await
 }
