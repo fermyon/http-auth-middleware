@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-RUN rustup target add wasm32-wasi
+RUN rustup target add wasm32-wasip1
 
 # Install cargo-component
 RUN cargo install --git https://github.com/bytecodealliance/cargo-component --locked cargo-component
