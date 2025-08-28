@@ -24,13 +24,10 @@ RUN apt-get update && apt-get install -y \
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-RUN rustup target add wasm32-wasip1
+RUN rustup target add wasm32-wasip2
 
-# Install cargo-component
-RUN cargo install --git https://github.com/bytecodealliance/cargo-component --locked cargo-component
-
-# Install wasm-tools
-RUN cargo install --git https://github.com/dicej/wasm-tools --branch wasm-compose-resource-imports wasm-tools --locked
+# Install WAC
+cargo install wac-cli --locked
 
 # Install the gopls Go Language Server, see https://github.com/golang/tools/tree/master/gopls
 RUN go install golang.org/x/tools/gopls@latest
