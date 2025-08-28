@@ -10,9 +10,9 @@ route = "/..."
 component = "frontend"
 
 [component.frontend]
-source = "target/wasm32-wasip1/release/github_oauth.wasm"
+source = "target/wasm32-wasip2/release/github_oauth.wasm"
 allowed_outbound_hosts = ["https://github.com", "https://api.github.com"]
 [component.frontend.build]
 command = "./build.sh"
 [component.frontend.dependencies]
-"wasi:http/incoming-handler@0.2.0" = { path = "target/wasm32-wasip1/release/example.wasm" }
+"wasi:http/incoming-handler@0.2.0" = { path = "target/wasm32-wasip2/release/example.wasm" }

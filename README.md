@@ -18,11 +18,11 @@ The `example-app/` directory contains a Spin application which consists of one h
 
 ### Pre-requisites
 
-- Install [cargo component](https://github.com/bytecodealliance/cargo-component):
-
-```bash
-cargo install cargo-component --locked
-```
+- Add the `wasm32-wasip2` target
+  
+  ```bash
+    rustup target add wasm32-wasip2
+  ```
 
 - Install latest [Spin](https://github.com/fermyon/spin)
 
@@ -64,7 +64,7 @@ export CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
 spin build
 
 # Compose the example-app with the github-oauth component
-wac plug --plug target/wasm32-wasip1/release/example.wasm target/wasm32-wasip1/release/github_oauth.wasm -o service.wasm
+wac plug --plug target/wasm32-wasip2/release/example.wasm target/wasm32-wasip2/release/github_oauth.wasm -o service.wasm
 
 # Serve the component on the expected host and port
 wasmtime serve service.wasm  -S cli --addr 127.0.0.1:3000
@@ -78,7 +78,7 @@ Instead of using the default callback URL of `http://127.0.0.1:3000/login/callba
 export AUTH_CALLBACK_URL=http://my-auth-app.fermyon.app/login/callback
 export CLIENT_ID=<YOUR_GITHUB_APP_CLIENT_ID> 
 export CLIENT_SECRET=<YOUR_GITHUB_APP_CLIENT_SECRET>
-cargo component build --manifest-path github-oauth/Cargo.toml --release --features compile-time-secrets
+cargo build --target wasm32-wasip2 --manifest-path github-oauth/Cargo.toml --release --features compile-time-secrets
 spin deploy
 ```
 
