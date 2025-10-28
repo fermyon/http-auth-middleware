@@ -1,49 +1,24 @@
-use spin_sdk::http::{Headers, IncomingRequest, OutgoingResponse, ResponseOutparam};
-use spin_sdk::http_component;
-use url::Url;
+use spin_sdk::http_wasip3::{Request, IntoResponse};
 
 mod api;
-
-// TODO: Allow configurable redirect URL
-#[http_component]
-async fn middleware(request: IncomingRequest, output: ResponseOutparam) {
-    let url = match get_url(&request) {
-        Ok(url) => url,
-        Err(e) => {
-            eprintln!("error parsing URL: {e}");
-            let response = OutgoingResponse::new(Headers::new());
-            response.set_status_code(500).unwrap();
-            output.set(response);
-            return;
-        }
-    };
-
-    match url.path() {
-        "/login/authorize" => api::authorize(output).await,
-        "/login/callback" => api::callback(url, output).await,
-        "/login" => api::login(output).await,
-        _ => api::authenticate(request, output).await,
-    }
-}
-
-fn get_url(request: &IncomingRequest) -> anyhow::Result<Url> {
-    let authority = request
-        .authority()
-        .ok_or(anyhow::anyhow!("missing host header"))?;
-
-    let path = request.path_with_query().unwrap_or_default();
-    let full = format!("http://{}{}", authority, path);
-    Ok(Url::parse(&full)?)
-}
+mod response;
 
 wit_bindgen::generate!({
-    runtime_path: "::spin_sdk::wit_bindgen::rt",
-    world: "wasi-http-import",
-    path: "wits",
+    path: "../wit",
+    world: "double:http/middleware",
+    async: true,
     with: {
-        "wasi:http/types@0.2.0": spin_sdk::wit::wasi::http::types,
-        "wasi:io/error@0.2.0": spin_executor::bindings::wasi::io::error,
-        "wasi:io/streams@0.2.0": spin_executor::bindings::wasi::io::streams,
-        "wasi:io/poll@0.2.0": spin_executor::bindings::wasi::io::poll,
-    }
+        "wasi:http/types@0.3.0-rc-2025-09-16": spin_sdk::http_wasip3::wasip3::http::types,
+    },
+    generate_all,
 });
+
+#[spin_sdk::http_wasip3::http_service]
+async fn handle(request: Request) -> impl IntoResponse {
+    match request.uri().path() {
+        "/login/authorize" => api::authorize().await.into_response(),
+        "/login/callback" => api::callback(request.uri()).await.into_response(),
+        "/login" => api::login().await.into_response(),
+        _ => api::authenticate(request).await.into_response(),
+    }
+}
